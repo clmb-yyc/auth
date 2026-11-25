@@ -1,4 +1,4 @@
-package com.clmb.auth.tokens;
+package com.clmb.auth.authentication;
 
 import com.clmb.auth.account.User;
 

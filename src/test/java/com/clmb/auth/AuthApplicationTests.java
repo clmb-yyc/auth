@@ -2,7 +2,7 @@ package com.clmb.auth;
 
 import com.clmb.auth.account.User;
 import com.clmb.auth.account.UserRepo;
-import com.clmb.auth.tokens.RefreshRequest;
+import com.clmb.auth.refresh.RefreshRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

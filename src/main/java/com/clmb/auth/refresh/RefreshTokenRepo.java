@@ -1,4 +1,4 @@
-package com.clmb.auth.tokens;
+package com.clmb.auth.refresh;
 
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;

@@ -1,6 +1,7 @@
-package com.clmb.auth.tokens;
+package com.clmb.auth.authentication;
 
 import com.clmb.auth.account.User;
+import com.clmb.auth.tokens.TokenResponse;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,16 +31,8 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AccessToken> login(@RequestBody Credentials credentials) {
-        return tokenResponse(authService.login(credentials.username(), credentials.password()));
-    }
-
-    @PostMapping("/refresh")
-    public ResponseEntity<AccessToken> refresh(@RequestBody RefreshRequest request) {
-        return tokenResponse(authService.refresh(request.refreshToken()));
-    }
-
-    private ResponseEntity<AccessToken> tokenResponse(AccessToken tokens) {
+    public ResponseEntity<TokenResponse> login(@RequestBody Credentials credentials) {
+        TokenResponse tokens = authService.login(credentials.username(), credentials.password());
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(tokens);
     }
 
@@ -57,11 +50,5 @@ public class AuthController {
     ResponseEntity<Map<String, String>> badCredentials() {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(Map.of("message", "We couldn't sign you in. Check your username and password."));
-    }
-
-    @ExceptionHandler(AuthService.InvalidRefreshTokenException.class)
-    ResponseEntity<Map<String, String>> invalidRefreshToken() {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(Map.of("message", "Your session has expired. Please sign in again."));
     }
 }
