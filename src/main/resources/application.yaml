@@ -1,3 +1,19 @@
 spring:
   application:
     name: auth
+  datasource:
+    url: "${AUTH_DB_URL:jdbc:postgresql://localhost:5433/auth}"
+    username: "${AUTH_DB_USER:postgres}"
+    password: "${AUTH_DB_PASSWORD}"
+  sql:
+    init:
+      mode: always
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+server:
+  port: "${AUTH_PORT:8081}"
+auth:
+  jwt:
+    secret: "${AUTH_JWT_SECRET}"
