@@ -17,8 +17,9 @@ import java.util.UUID;
 public class User {
     @Id
     private UUID id;
+    @Column(nullable = false, unique = true, length = 64)
     private String username;
-    @Column(name = "password_hash")
+    @Column(name = "password_hash", nullable = false, columnDefinition = "text")
     private String passwordHash;
 
     @Column(name = "first_name", length = 100)
@@ -27,7 +28,7 @@ public class User {
     @Column(name = "last_name", length = 100)
     private String lastName;
 
-    @Column(length = 254)
+    @Column(unique = true, length = 254)
     private String email;
 
     @CreationTimestamp

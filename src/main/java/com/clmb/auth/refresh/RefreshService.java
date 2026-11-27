@@ -63,7 +63,7 @@ public class RefreshService {
         byte[] randomBytes = new byte[32];
         random.nextBytes(randomBytes);
         String refreshToken = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
-        refreshTokens.save(new RefreshToken(hashToken(refreshToken), user.getId(), now.plus(REFRESH_TOKEN_TTL)));
+        refreshTokens.save(new RefreshToken(hashToken(refreshToken), user, now.plus(REFRESH_TOKEN_TTL)));
         long expiresIn = Duration.between(accessToken.getIssuedAt(), accessToken.getExpiresAt()).toSeconds();
         return new TokenResponse(accessToken.getTokenValue(), "Bearer", expiresIn, refreshToken,
                 REFRESH_TOKEN_TTL.toSeconds());
