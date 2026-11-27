@@ -25,6 +25,7 @@ import org.springframework.security.web.SecurityFilterChain;
 
 import javax.crypto.spec.SecretKeySpec;
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 
 @Configuration
@@ -43,7 +44,7 @@ public class WebSecurityConfig {
             }
             return User.withUsername(account.getUsername())
                     .password(account.getPasswordHash())
-                    .roles(account.getRole().name())
+                    .authorities(List.of())
                     .build();
         };
     }

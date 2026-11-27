@@ -42,7 +42,6 @@ public class AuthService {
         user.setId(UUID.randomUUID());
         user.setUsername(username);
         user.setPassword(passwords.encode(password));
-        user.setRole(User.Role.VIEWER);
 
         try {
             return users.saveAndFlush(user);

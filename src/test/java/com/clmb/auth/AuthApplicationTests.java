@@ -44,7 +44,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 class AuthApplicationTests {
     private static final String CREDENTIALS = """
-            {"username":"climber","password":"password123","role":"STAFF"}
+            {"username":"climber","password":"password123"}
             """;
 
     @Autowired MockMvc mvc;
@@ -63,7 +63,7 @@ class AuthApplicationTests {
     void signupAndLoginIssueSignedTokensWithoutExposingCredentials() throws Exception {
         send("/signup", CREDENTIALS)
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.role").value("VIEWER"))
+                .andExpect(jsonPath("$.role").doesNotExist())
                 .andExpect(jsonPath("$.passwordHash").doesNotExist());
         send("/signup", CREDENTIALS).andExpect(status().isConflict());
         send("/login", CREDENTIALS.replace("password123", "wrong")).andExpect(status().isUnauthorized());
@@ -76,7 +76,7 @@ class AuthApplicationTests {
         Jwt jwt = decode(tokens);
         assertThat(jwt.getSubject()).isEqualTo(user.getId().toString());
         assertThat(jwt.getClaimAsString("preferred_username")).isEqualTo(user.getUsername());
-        assertThat(jwt.getClaimAsStringList("authorities")).containsExactly("ROLE_VIEWER");
+        assertThat(jwt.getClaims()).doesNotContainKey("authorities");
         assertThat(Duration.between(jwt.getIssuedAt(), jwt.getExpiresAt())).isEqualTo(Duration.ofMinutes(15));
 
         String storedHash = database.queryForObject("SELECT token_hash FROM refresh_tokens", String.class);
@@ -84,17 +84,18 @@ class AuthApplicationTests {
     }
 
     @Test
-    void refreshRotatesTheTokenAndReadsTheCurrentRole() throws Exception {
+    void refreshRotatesTheTokenAndPreservesUserIdentity() throws Exception {
         send("/signup", CREDENTIALS).andExpect(status().isCreated());
         JsonNode first = login();
         String oldToken = first.get("refreshToken").asString();
-        database.update("UPDATE users SET role = 'STAFF' WHERE username = 'climber'");
 
         JsonNode rotated = read(refresh(oldToken).andExpect(status().isOk())
                 .andExpect(header().string("Cache-Control", "no-store")));
         String newToken = rotated.get("refreshToken").asString();
         assertThat(newToken).isNotEqualTo(oldToken);
-        assertThat(decode(rotated).getClaimAsStringList("authorities")).containsExactly("ROLE_STAFF");
+        Jwt jwt = decode(rotated);
+        assertThat(jwt.getSubject()).isEqualTo(decode(first).getSubject());
+        assertThat(jwt.getClaims()).doesNotContainKey("authorities");
 
         refresh(oldToken).andExpect(status().isUnauthorized());
         refresh(first.get("accessToken").asString()).andExpect(status().isUnauthorized());

@@ -27,7 +27,7 @@ public class AuthController {
     public ResponseEntity<RegisteredUser> signup(@RequestBody Credentials credentials) {
         User user = authService.signup(credentials.username(), credentials.password());
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new RegisteredUser(user.getId(), user.getUsername(), user.getRole()));
+                .body(new RegisteredUser(user.getId(), user.getUsername()));
     }
 
     @PostMapping("/login")

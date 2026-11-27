@@ -11,7 +11,6 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 
 @Component
 public class AccessTokenIssuer {
@@ -31,7 +30,6 @@ public class AccessTokenIssuer {
                 .issuedAt(now)
                 .expiresAt(now.plus(TOKEN_TTL))
                 .claim("preferred_username", user.getUsername())
-                .claim("authorities", List.of("ROLE_" + user.getRole().name()))
                 .build();
         return jwtEncoder.encode(JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), claims));
     }
