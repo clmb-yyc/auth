@@ -24,8 +24,8 @@ public class AuthController {
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<RegisteredUser> signup(@RequestBody Credentials credentials) {
-        User user = authService.signup(credentials.username(), credentials.password());
+    public ResponseEntity<RegisteredUser> signup(@RequestBody SignupRequest request) {
+        User user = authService.signup(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new RegisteredUser(user.getId(), user.getUsername()));
     }
@@ -41,8 +41,8 @@ public class AuthController {
         return ResponseEntity.badRequest().body(Map.of("message", exception.getMessage()));
     }
 
-    @ExceptionHandler(AuthService.UsernameAlreadyExistsException.class)
-    ResponseEntity<Map<String, String>> signupConflict(AuthService.UsernameAlreadyExistsException exception) {
+    @ExceptionHandler(AuthService.AccountAlreadyExistsException.class)
+    ResponseEntity<Map<String, String>> signupConflict(AuthService.AccountAlreadyExistsException exception) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", exception.getMessage()));
     }
 

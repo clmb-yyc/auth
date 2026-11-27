@@ -71,6 +71,8 @@ class AuthApplicationTests {
         User user = users.findByUsername("climber");
         assertThat(user.getPasswordHash()).startsWith("{bcrypt}");
         assertThat(passwords.matches("password123", user.getPasswordHash())).isTrue();
+        assertThat(database.queryForObject("SELECT last_login_at FROM users WHERE id = ?", Timestamp.class, user.getId()))
+                .isNull();
 
         JsonNode tokens = login();
         Jwt jwt = decode(tokens);
@@ -81,12 +83,48 @@ class AuthApplicationTests {
 
         String storedHash = database.queryForObject("SELECT token_hash FROM refresh_tokens", String.class);
         assertThat(storedHash).matches("[0-9a-f]{64}").isNotEqualTo(tokens.get("refreshToken").asString());
+        assertThat(database.queryForObject("SELECT last_login_at FROM users WHERE id = ?", Timestamp.class, user.getId()))
+                .isNotNull();
+    }
+
+    @Test
+    void signupStoresOptionalNamesAndUniqueEmail() throws Exception {
+        String profile = """
+                {"username":"climber","password":"password123","firstName":" Zoë ",
+                 "lastName":"Martin","email":" Climber@Example.com "}
+                """;
+        send("/signup", profile).andExpect(status().isCreated());
+        var stored = database.queryForMap("""
+                SELECT first_name, last_name, email, created_at, updated_at, password_changed_at, email_verified_at
+                FROM users WHERE username = 'climber'
+                """);
+        assertThat(stored).containsEntry("first_name", "Zoë")
+                .containsEntry("last_name", "Martin").containsEntry("email", "climber@example.com")
+                .containsEntry("email_verified_at", null);
+        assertThat(stored.get("created_at")).isNotNull();
+        assertThat(stored.get("updated_at")).isNotNull();
+        assertThat(stored.get("password_changed_at")).isNotNull();
+        send("/signup", profile.replace("\"climber\"", "\"another\"").replace("Climber@Example.com", "climber@example.com"))
+                .andExpect(status().isConflict());
+        send("/signup", profile.replace("\"climber\"", "\"another\"").replace("Climber@Example.com", "invalid-email"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void disabledAccountsCannotLogInOrRefresh() throws Exception {
+        send("/signup", CREDENTIALS).andExpect(status().isCreated());
+        String refreshToken = login().get("refreshToken").asString();
+        database.update("UPDATE users SET disabled_at = CURRENT_TIMESTAMP WHERE username = 'climber'");
+
+        send("/login", CREDENTIALS).andExpect(status().isUnauthorized());
+        refresh(refreshToken).andExpect(status().isUnauthorized());
     }
 
     @Test
     void refreshRotatesTheTokenAndPreservesUserIdentity() throws Exception {
         send("/signup", CREDENTIALS).andExpect(status().isCreated());
         JsonNode first = login();
+        Timestamp lastLogin = database.queryForObject("SELECT last_login_at FROM users", Timestamp.class);
         String oldToken = first.get("refreshToken").asString();
 
         JsonNode rotated = read(refresh(oldToken).andExpect(status().isOk())
@@ -96,6 +134,7 @@ class AuthApplicationTests {
         Jwt jwt = decode(rotated);
         assertThat(jwt.getSubject()).isEqualTo(decode(first).getSubject());
         assertThat(jwt.getClaims()).doesNotContainKey("authorities");
+        assertThat(database.queryForObject("SELECT last_login_at FROM users", Timestamp.class)).isEqualTo(lastLogin);
 
         refresh(oldToken).andExpect(status().isUnauthorized());
         refresh(first.get("accessToken").asString()).andExpect(status().isUnauthorized());

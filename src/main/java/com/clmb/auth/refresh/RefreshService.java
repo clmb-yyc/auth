@@ -48,7 +48,9 @@ public class RefreshService {
         if (!stored.getExpiresAt().isAfter(Instant.now())) {
             throw new InvalidRefreshTokenException();
         }
-        User user = users.findById(stored.getUserId()).orElseThrow(InvalidRefreshTokenException::new);
+        User user = users.findById(stored.getUserId())
+                .filter(account -> !account.isDisabled())
+                .orElseThrow(InvalidRefreshTokenException::new);
 
         // The lock, deletion, and new token are part of one transaction.
         refreshTokens.delete(stored);
